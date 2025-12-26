@@ -4,11 +4,12 @@ This document describes the security and dependency updates made to the MCDSaveE
 
 ## Summary
 
-The following NuGet packages have been updated to address security vulnerabilities and improve stability:
+The following NuGet packages have been updated to address security vulnerabilities and improve stability across the MCDSaveEdit and DungeonTools projects:
 
 ### Critical Security Updates
 
 1. **System.Text.Json: 6.0.6 → 6.0.10**
+   - **Projects Updated**: MCDSaveEdit, DungeonTools
    - **Severity**: High
    - **CVE**: CVE-2024-43485
    - **Issue**: Denial of Service vulnerability when deserializing input into models using `[ExtensionData]` property
@@ -18,11 +19,13 @@ The following NuGet packages have been updated to address security vulnerabiliti
 ### Important Updates
 
 2. **NLog: 5.0.4 → 5.3.4**
+   - **Projects Updated**: MCDSaveEdit
    - **Reason**: Version 5.0.4 had no known vulnerabilities, but updating to 5.3.4 provides bug fixes and improvements
    - **Note**: Latest version is 6.0.7, but 5.3.4 is chosen for stability and minimal breaking changes
    - **Status**: No security vulnerabilities
 
 3. **System.Diagnostics.DiagnosticSource: 6.0.0 → 6.0.1**
+   - **Projects Updated**: MCDSaveEdit
    - **Reason**: Minor version update for bug fixes and improvements
    - **Status**: No security vulnerabilities
 
