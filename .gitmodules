@@ -1,8 +1,8 @@
 [submodule "DungeonTools/DungeonTools"]
 	path = DungeonTools/DungeonTools
-	url = git@github.com:CutFlame/DungeonTools.git
+	url = https://github.com/CutFlame/DungeonTools.git
 	branch = save-file-editor
 [submodule "PakReader/PakReader"]
 	path = PakReader/PakReader
-	url = git@github.com:CutFlame/PakReader
+	url = https://github.com/CutFlame/PakReader.git
 	branch = MCDSaveEdit

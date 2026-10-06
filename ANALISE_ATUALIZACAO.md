@@ -117,3 +117,56 @@ O programa foi atualizado com sucesso para corrigir vulnerabilidades de seguran�
 - [CVE-2024-21907 - Newtonsoft.Json DoS](https://nvd.nist.gov/vuln/detail/CVE-2024-21907)
 - [NLog Release Notes](https://github.com/NLog/NLog/releases)
 - [SECURITY_UPDATES.md](./SECURITY_UPDATES.md) - Documentação detalhada em inglês
+
+---
+
+# Segunda Rodada — Auditoria de Código e Correções
+
+Esta rodada revisou o código-fonte (não apenas dependências). Cada correção abaixo está coberta por teste em `MCDSaveEditTests`; os 15 testes de comportamento novos falham no código anterior e passam no atual.
+
+## Integridade dos saves (risco de perda de dados)
+
+| Problema | Efeito | Correção |
+|---|---|---|
+| Campos do save não mapeados eram descartados ao salvar | Dados de versões novas do jogo (ou não modelados) sumiam do arquivo | `[JsonExtensionData]` em todos os modelos (`ProfileSaveFile`, `Item`, `Enchantment`, etc.) |
+| O parser tratava cada byte como `char` e removia bytes 0x80–0x9F | Nomes/textos não-ASCII (ex.: `Ł`, `中文`) eram corrompidos | Só bytes de controle ASCII são removidos; UTF-8 preservado |
+| Chaves `{`/`}` dentro de strings contavam como estrutura | Objeto JSON cortado no meio | Parser ignora chaves dentro de strings (com escape `\"`) |
+| Gravação truncava o arquivo e escrevia por cima | Falha no meio deixava o save destruído | Gravação em arquivo temporário + substituição; versão anterior preservada como `.bak` |
+| Exceções ao abrir/salvar (arquivo bloqueado pelo jogo, acesso negado) | Encerramento abrupto do app | Erros capturados e exibidos em mensagem |
+
+## Bugs de lógica
+
+- **XP com overflow**: `experienceForLevel` usava aritmética `int`; a partir do nível 2676 gravava XP **negativo** no save. Agora usa precisão decimal e satura em `long.MaxValue`; `levelForExperience` corrige erros de ponto flutuante.
+- **Custo de encantamento** e **nível por poder** também tinham overflow em valores altos.
+- **Mover item equipado para o baú**: o item mantinha `equipmentSlot`, ficava invisível na lista do baú e a tela de equipamento não atualizava.
+- **Conjunto de encantamentos incompleto** (menos de 3) derrubava a tela com `IndexOutOfRangeException`; adicionar slot agora completa o conjunto.
+- **Salvar encantamento fora da lista** (ex.: o encantamento dourado) gerava `ArgumentOutOfRangeException`.
+- **Moedas** com `currency` ausente no save geravam `NullReferenceException`.
+- **Estatísticas**: um campo presente em `progressStatCounters` e `mob_kills` era sempre gravado no primeiro.
+- Itens sem `inventoryIndex` derrubavam a ordenação da lista.
+- `removing()` usava `Except`, que também remove duplicatas de outros elementos.
+
+## Robustez no carregamento
+
+- Exceções durante a leitura dos `.pak` ou o pré-carregamento de imagens deixavam a splash **travada para sempre** (`TaskCompletionSource` nunca concluído).
+- Chaves duplicadas em localizações, encantamentos e equipamentos abortavam todo o carregamento do conteúdo do jogo.
+- Strings de idioma: namespaces ausentes ou chaves repetidas não descartam mais todo o conjunto.
+- Verificação de versão aceita tags `v1.2.3` e valores inválidos sem lançar exceção.
+- Espera pelas configs remotas deixou de ser um laço ocupado que consumia CPU e inundava o console.
+- Chaves do Registro do Windows passaram a ser liberadas (`using`).
+
+## Segurança das dependências
+
+Uma auditoria com `dotnet list package --vulnerable --include-transitive` sobre todos os `packages.config` encontrou duas vulnerabilidades altas que a rodada anterior não cobriu:
+
+- **SkiaSharp 2.88.3 → 2.88.9** (GHSA-j7hp-h8jx-5ppr, falha do libwebp — CVE-2023-4863). A falha está no `libSkiaSharp.dll` nativo, que o Costura embute a partir de `Costura32/` e `Costura64/`; esses binários eram idênticos (SHA-256) aos da 2.88.3 e foram substituídos pelos do pacote oficial 2.88.9, com assinaturas Microsoft e NuGet.org verificadas.
+- **DotNetZip 1.16.0** (GHSA-xhg6-9j5j-w4vf): não existe versão corrigida. A falha afeta extração de arquivos zip para disco, o que este programa não faz; a substituição depende do submódulo PakReader (ver `SECURITY_UPDATES.md`).
+
+## Como foi validado
+
+O projeto WPF/.NET Framework não compila em Linux e os submódulos não estavam acessíveis no ambiente de análise. A validação foi feita em duas frentes:
+
+1. **Compilação do aplicativo inteiro** (todos os `.cs` de `MCDSaveEdit`, C# 8, nullable) contra os assemblies de referência WPF, com stubs apenas para os submódulos, o `Secrets.cs` e os campos gerados pelo XAML: **sem erros**.
+2. **Testes**: os arquivos de lógica do repositório (modelos, parser, cálculos, view models, utilitários) rodaram num projeto de teste .NET 8 com a suíte existente e os testes novos: **49/49 aprovados**.
+
+A interface WPF, a criptografia (`DungeonTools`) e a leitura dos `.pak` não foram executadas — recomenda-se um teste manual de abrir, editar e salvar um personagem no Windows antes de publicar uma versão.
