@@ -20,7 +20,7 @@ namespace MCDSaveEdit.Logic
             using FileStream inputStream = file.OpenRead();
             bool encrypted = SaveFileHandler.IsFileEncrypted(inputStream);
 
-            Stream? processed = encrypted ? await Decrypt(inputStream) : await Encrypt(inputStream);
+            using Stream? processed = encrypted ? await Decrypt(inputStream) : await Encrypt(inputStream);
             if (processed == null)
             {
                 EventLogger.logError($"Content of file \"{file.Name}\" could not be converted to a supported format.");
@@ -69,13 +69,16 @@ namespace MCDSaveEdit.Logic
                 return outFileName;
             }
 
+            string outFileNameWithoutExtension = outFileName.Substring(0, outFileName.Length - targetExtension.Length);
             int fileNumber = 1;
-            while (File.Exists(outFileName))
+            string numberedFileName;
+            do
             {
-                outFileName = $"{outFileName.Substring(outFileName.Length - targetExtension.Length)}_{fileNumber++}{targetExtension}";
+                numberedFileName = $"{outFileNameWithoutExtension}_{fileNumber++}{targetExtension}";
             }
+            while (File.Exists(numberedFileName));
 
-            return outFileName;
+            return numberedFileName;
         }
 
     }

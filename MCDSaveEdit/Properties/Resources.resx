@@ -249,9 +249,21 @@
     <value>Failed to load game content.</value>
     <comment>Failed to load game content.</comment>
   </data>
+  <data name="FAILED_TO_OPEN_FILE_ERROR_MESSAGE" xml:space="preserve">
+    <value>Failed to open the file "{0}".
+
+{1}</value>
+    <comment>Failed to open the file "{0}". {1} is the error details.</comment>
+  </data>
   <data name="FAILED_TO_PARSE_FILE_ERROR_MESSAGE" xml:space="preserve">
     <value>File was not in an expected format.</value>
     <comment>File was not in an expected format.</comment>
+  </data>
+  <data name="FAILED_TO_SAVE_FILE_ERROR_MESSAGE" xml:space="preserve">
+    <value>Failed to save the file "{0}". The file on disk was not changed.
+
+{1}</value>
+    <comment>Failed to save the file "{0}". {1} is the error details.</comment>
   </data>
   <data name="FILE_DECRYPT_ERROR_MESSAGE" xml:space="preserve">
     <value>Content of file \"{0}\" could not be converted to a supported format.</value>

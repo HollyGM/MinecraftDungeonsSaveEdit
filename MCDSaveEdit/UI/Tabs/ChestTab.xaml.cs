@@ -97,11 +97,11 @@ namespace MCDSaveEdit.UI
 
         private void moveItemToInventory(Item item)
         {
+            removeItem(item);
+
             model?.mainEquipmentModel?.selectEnchantment(null);
             model?.mainEquipmentModel?.addItemToList(item);
             model?.mainEquipmentModel?.selectItem(item);
-
-            removeItem(item);
         }
 
         #region UI

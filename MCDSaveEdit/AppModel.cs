@@ -114,8 +114,7 @@ namespace MCDSaveEdit
 
         private Task<PakIndex?> loadPakIndex(string paksFolderPath)
         {
-            var tcs = new TaskCompletionSource<PakIndex?>();
-            Task.Run(() =>
+            return Task.Run<PakIndex?>(() =>
             {
                 try
                 {
@@ -133,15 +132,14 @@ namespace MCDSaveEdit
                     var versionStr = R.formatMCD_VERSION(mainModel.detectedGameVersion ?? R.ERROR);
                     Console.WriteLine($"Detected Pak Files for {versionStr}");
 
-                    tcs.SetResult(pakIndex);
+                    return pakIndex;
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Could not load Minecraft Dungeons Paks: {e}");
-                    tcs.SetException(e);
+                    throw;
                 }
             });
-            return tcs.Task;
         }
 
         private bool unlockPakIndex(PakIndex pakIndex)
@@ -161,7 +159,8 @@ namespace MCDSaveEdit
 
                 if (keyBytes.Length != 32)
                 {
-                    throw new InvalidOperationException($"AES Key ({keyStr.Substring(0, 3)}...) is {keyBytes.Length} bytes instead of the expected 32");
+                    var keyPrefix = keyStr.Length > 3 ? keyStr.Substring(0, 3) : keyStr;
+                    throw new InvalidOperationException($"AES Key ({keyPrefix}...) is {keyBytes.Length} bytes instead of the expected 32");
                 }
                 var count = pakIndex.UseKey(FGuid.Zero, keyBytes);
                 if (count > 0)
@@ -192,21 +191,6 @@ namespace MCDSaveEdit
             {
                 R.unloadExternalStrings();
             }
-        }
-
-        private static string spaceOutWords(string input)
-        {
-            var output = new StringBuilder();
-            for (int ii = 0; ii < input.Length; ii++)
-            {
-                var letter = input[ii];
-                if (ii > 0 && char.IsUpper(letter) && output[output.Length] != ' ')
-                {
-                    output.Append(' ');
-                }
-                output.Append(letter);
-            }
-            return output.ToString();
         }
 
     }

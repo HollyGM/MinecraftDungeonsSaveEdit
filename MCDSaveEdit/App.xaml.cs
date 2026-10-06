@@ -159,10 +159,10 @@ namespace MCDSaveEdit
             return true;
         }
 
-        private Task<bool> preloadImages()
+        private Task preloadImages()
         {
-            var tcs = new TaskCompletionSource<bool>();
-            Task.Run(() => {
+            //Task.Run propagates exceptions to the awaiting caller instead of leaving the splash screen waiting forever
+            return Task.Run(() => {
                 MainThreadConsoleWriteLine("Loading UI images...");
                 InventoryTab.preload();
                 EquipmentScreen.preload();
@@ -175,10 +175,7 @@ namespace MCDSaveEdit
 
                 MainThreadConsoleWriteLine("Loading Equipment images...");
                 BaseSelectionWindow.preload();
-
-                tcs.SetResult(true);
             });
-            return tcs.Task;
         }
 
         private void showMainWindow()
@@ -270,7 +267,7 @@ namespace MCDSaveEdit
 
         ~App()
         {
-            Dispose(true);
+            Dispose(false);
         }
 
         public void Dispose()

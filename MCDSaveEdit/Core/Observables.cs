@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive;
 #nullable enable
 
@@ -9,9 +10,10 @@ namespace MCDSaveEdit
     {
         private readonly HashSet<IObserver<T>> _observers = new HashSet<IObserver<T>>();
 
+        //Iterate over a copy so an observer can subscribe or unsubscribe while being notified
         protected void sendNext(T nextValue)
         {
-            foreach(var observer in _observers)
+            foreach(var observer in _observers.ToArray())
             {
                 observer.OnNext(nextValue);
             }
@@ -19,7 +21,7 @@ namespace MCDSaveEdit
 
         protected void sendError(Exception ex)
         {
-            foreach (var observer in _observers)
+            foreach (var observer in _observers.ToArray())
             {
                 observer.OnError(ex);
             }
@@ -27,7 +29,7 @@ namespace MCDSaveEdit
 
         protected void sendCompleted()
         {
-            foreach (var observer in _observers)
+            foreach (var observer in _observers.ToArray())
             {
                 observer.OnCompleted();
             }

@@ -66,6 +66,7 @@ MCDSaveEdit has a dependency on .NET Framework 4.8 so you could try installing t
     1. NOTE: If multiple Mojang or Microsoft accounts were used in-game you might see more than one folder. 
 4. Select one of the files ending in `.dat`. There will be one for each character.
 5. Click `Open` and edit your save. When ready go to `File > Save` or `File > Save As...` to save your edits.
+    1. When an existing file is overwritten, its previous version is kept next to it with a `.bak` extension (e.g. `MyCharacter.dat.bak`). To undo your last save, close the game and rename that file back to its original name.
 
 <p></p>
 
@@ -87,7 +88,7 @@ MCDSaveEdit has a dependency on .NET Framework 4.8 so you could try installing t
 
 This application was developed entirely in Visual Studio 2022.
 
-When cloning be sure to recurse through submodules because there are 2:
+When cloning be sure to recurse through submodules because there are 2 (`git clone --recurse-submodules`):
 
 - [DungeonTools](https://github.com/CutFlame/DungeonTools/tree/save-file-editor-1.1)
 - [PakReader](https://github.com/CutFlame/PakReader/tree/MCDSaveEdit)
@@ -112,10 +113,10 @@ namespace MCDSaveEdit.Data
 }
 ```
 
-Another bit of trouble you might run into is the error: "The referenced component 'Windows' could not be found" in `MCDSaveEdit/Data/Constants.cs` line 3: `using Windows.Management.Deployment;`
+Another bit of trouble you might run into is the error: "The referenced component 'Windows' could not be found" for `Windows.Management.Deployment.PackageManager` in `MCDSaveEdit/Data/Constants/Constants.FileSystemData.cs`
 
 - Try the accepted answer [here](https://stackoverflow.com/questions/54454214/how-to-access-windows-management-deployment-namespace-in-a-desktop-project-in-vs).
-- This bit of code is only required for the Microsoft Store version, so if you have the launcher version you can just comment out lines 3 and 54 through 61.
+- This bit of code is only required for the Microsoft Store version (`WINSTORE_PAKS_FOLDER_PATH_IF_EXISTS`, which is no longer called), so you can comment out that property.
 
 ---
 

@@ -11,7 +11,9 @@ namespace MCDSaveEdit
         /// </summary>
         public static IEnumerable<T> removing<T>(this IEnumerable<T> collection, T item)
         {
-            return collection.Except(new[] { item });
+            //Not using Except() because it also drops duplicates of the other items
+            var comparer = EqualityComparer<T>.Default;
+            return collection.Where(element => !comparer.Equals(element, item)).ToList();
         }
 
         /// <summary>
@@ -21,7 +23,8 @@ namespace MCDSaveEdit
         {
             var list = collection.ToList();
             var index = list.IndexOf(oldValue);
-            return collection.replacingAtIndex(index, newValue);
+            if (index < 0) { return list; }
+            return list.replacingAtIndex(index, newValue);
         }
 
         /// <summary>

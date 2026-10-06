@@ -34,37 +34,9 @@ namespace MCDSaveEdit.ViewModels
             mainEquipmentModel = new MainEquipmentViewModel(_profile);
             storageChestEquipmentModel = new StorageChestEquipmentViewModel(_profile);
 
-            emeralds = _profile.map<ProfileSaveFile?, ulong?>(
-               p => p?.Currency.FirstOrDefault(c => c.Type == Constants.EMERALD_CURRENCY_NAME)?.Count,
-               (p, value) => {
-                   if (p == null || value == null) { return; }
-                   Currency currency = p!.Currency.FirstOrDefault(c => c.Type == Constants.EMERALD_CURRENCY_NAME) ?? new Currency() { Type = Constants.EMERALD_CURRENCY_NAME };
-                   currency.Count = value.Value;
-                   p!.Currency = (new[] { currency }).Concat(p!.Currency.Where(c => c.Type != Constants.EMERALD_CURRENCY_NAME)).OrderBy(c => c.Type).ToArray();
-               });
-
-            gold = _profile.map<ProfileSaveFile?, ulong?>(
-               p => p?.Currency.FirstOrDefault(c => c.Type == Constants.GOLD_CURRENCY_NAME)?.Count,
-               (p, value) => {
-                   if (p == null || value == null) { return; }
-                   Currency currency = p!.Currency.FirstOrDefault(c => c.Type == Constants.GOLD_CURRENCY_NAME) ?? new Currency() { Type = Constants.GOLD_CURRENCY_NAME };
-                   currency.Count = value.Value;
-                   p!.Currency = (new[] { currency }).Concat(p!.Currency.Where(c => c.Type != Constants.GOLD_CURRENCY_NAME)).OrderBy(c => c.Type).ToArray();
-               });
-
-            eyeOfEnder = _profile.map(
-                p => p?.Currency.FirstOrDefault(c => c.Type == Constants.EYE_OF_ENDER_CURRENCY_NAME)?.Count,
-                (p, value) => {
-                    if (p == null || value == null) { return; }
-
-                    Currency currency =
-                        p.Currency.FirstOrDefault(c => c.Type == Constants.EYE_OF_ENDER_CURRENCY_NAME) ??
-                        new Currency { Type = Constants.EYE_OF_ENDER_CURRENCY_NAME };
-                    currency.Count = value.Value;
-                    p.Currency = (new[] { currency })
-                        .Concat(p.Currency.Where(c => c.Type != Constants.EYE_OF_ENDER_CURRENCY_NAME))
-                        .OrderBy(c => c.Type).ToArray();
-                });
+            emeralds = mapCurrency(Constants.EMERALD_CURRENCY_NAME);
+            gold = mapCurrency(Constants.GOLD_CURRENCY_NAME);
+            eyeOfEnder = mapCurrency(Constants.EYE_OF_ENDER_CURRENCY_NAME);
 
             unlockPortal = _profile.map(p =>
                 p?.StrongholdProgess?.Where(x => x.Key.EndsWith("Unlocked")).All(x => x.Value),
@@ -75,6 +47,24 @@ namespace MCDSaveEdit.ViewModels
                         .ToDictionary(x => x.Key, x => x.Key.EndsWith("Unlocked") ? value.Value : x.Value);
                 });
 
+        }
+
+        private IReadWriteProperty<ulong?> mapCurrency(string currencyType)
+        {
+            return _profile.map<ProfileSaveFile?, ulong?>(
+                p => p?.Currency?.FirstOrDefault(c => c.Type == currencyType)?.Count,
+                (p, value) => {
+                    if (p == null || value == null) { return; }
+
+                    var currencies = p.Currency ?? new Currency[0];
+                    Currency currency =
+                        currencies.FirstOrDefault(c => c.Type == currencyType) ??
+                        new Currency { Type = currencyType };
+                    currency.Count = value.Value;
+                    p.Currency = (new[] { currency })
+                        .Concat(currencies.Where(c => c.Type != currencyType))
+                        .OrderBy(c => c.Type).ToArray();
+                });
         }
 
     }

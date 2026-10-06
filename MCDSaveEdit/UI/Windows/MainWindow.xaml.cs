@@ -256,7 +256,9 @@ namespace MCDSaveEdit.UI
             var saveFileDialog = new SaveFileDialog();
             saveFileDialog.Filter = constructOpenFileDialogFilterString(ProfileViewModel.supportedFileTypesDict);
             saveFileDialog.FilterIndex = 0;
-            saveFileDialog.InitialDirectory = Path.GetDirectoryName(_model.profileModel.filePath!); //Constants.FILE_DIALOG_INITIAL_DIRECTORY;
+            saveFileDialog.InitialDirectory = string.IsNullOrWhiteSpace(_model.profileModel.filePath)
+                ? Constants.FILE_DIALOG_INITIAL_DIRECTORY
+                : Path.GetDirectoryName(_model.profileModel.filePath!);
             if (saveFileDialog.ShowDialog() == true)
             {
                 handleFileSaveAsync(saveFileDialog.FileName);
@@ -304,11 +306,11 @@ namespace MCDSaveEdit.UI
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 // Note that you can have more than one file.
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                string[]? files = e.Data.GetData(DataFormats.FileDrop) as string[];
 
                 // Assuming you have one file that you care about, pass it off to whatever
                 // handling code you have defined.
-                handleFileOpenAsync(files[0]);
+                handleFileOpenAsync(files?.FirstOrDefault());
             }
             else
             {
@@ -336,24 +338,36 @@ namespace MCDSaveEdit.UI
                 return;
             }
             showBusyIndicator();
-            string extension = Path.GetExtension(fileName!);
-            EventLogger.logEvent("handleFileOpenAsync", new Dictionary<string, object>() { { "extension", extension } });
-            await _model.handleFileOpenAsync(fileName!);
-            updateTitleUI();
-            refreshRecentFilesList();
-            closeBusyIndicator();
+            try
+            {
+                string extension = Path.GetExtension(fileName!);
+                EventLogger.logEvent("handleFileOpenAsync", new Dictionary<string, object>() { { "extension", extension } });
+                await _model.handleFileOpenAsync(fileName!);
+                updateTitleUI();
+                refreshRecentFilesList();
+            }
+            finally
+            {
+                closeBusyIndicator();
+            }
         }
 
         private async void handleFileSaveAsync(string? fileName)
         {
             if (_model.profileModel.profile.value == null || string.IsNullOrWhiteSpace(fileName)) { return; }
             showBusyIndicator();
-            string extension = Path.GetExtension(fileName!);
-            EventLogger.logEvent("handleFileSaveAsync", new Dictionary<string, object>() { { "extension", extension } });
-            await _model.handleFileSaveAsync(fileName!, _model.profileModel.profile.value!);
-            updateTitleUI();
-            refreshRecentFilesList();
-            closeBusyIndicator();
+            try
+            {
+                string extension = Path.GetExtension(fileName!);
+                EventLogger.logEvent("handleFileSaveAsync", new Dictionary<string, object>() { { "extension", extension } });
+                await _model.handleFileSaveAsync(fileName!, _model.profileModel.profile.value!);
+                updateTitleUI();
+                refreshRecentFilesList();
+            }
+            finally
+            {
+                closeBusyIndicator();
+            }
         }
         
         private void showBusyIndicator()

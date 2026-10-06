@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -25,40 +24,10 @@ namespace MCDSaveEdit.Save.Models.Profiles
 
         public static async ValueTask<ProfileSaveFile?> Read(Stream stream)
         {
-            using BinaryReader reader = new BinaryReader(stream, Encoding.UTF8, false);
-            using MemoryStream sanitized = new MemoryStream();
-            int bracketCount = 0;
-            while (reader.BaseStream.Position < reader.BaseStream.Length)
-            {
-                byte b = reader.ReadByte();
-                char c = (char)b;
-                if (char.IsControl(c))
-                {
-                    continue;
-                }
+            using MemoryStream raw = new MemoryStream();
+            await stream.CopyToAsync(raw);
+            using MemoryStream sanitized = sanitize(raw.GetBuffer(), (int)raw.Length);
 
-                // PS4 and Switch files have a bunch of extra duplicate data at the end
-                // which makes them invalid json files. This takes the first full JSON
-                // object found in the file and drops everything after that.
-                if (c == '{')
-                {
-                    bracketCount++;
-                }
-                else if (c == '}')
-                {
-                    bracketCount--;
-                    if (bracketCount == 0)
-                    {
-                        // This is the end of the first full JSON object
-                        sanitized.WriteByte(b);
-                        break;
-                    }
-                }
-
-                sanitized.WriteByte(b);
-            }
-
-            sanitized.Seek(0, SeekOrigin.Begin);
             ProfileSaveFile? obj = await JsonSerializer.DeserializeAsync<ProfileSaveFile>(sanitized, _options);
             //TODO: handle migration of Tower data from 1.15.1 to 1.16.2
             //if(obj?.MissionStatesMap?.TowerMissionContainer?.OldTowerMissionStateData != null && obj!.MissionStatesMap!.TowerMissionContainer!.OldTowerMissionStateData.Count > 0)
@@ -69,6 +38,70 @@ namespace MCDSaveEdit.Save.Models.Profiles
             //    obj!.MissionStatesMap!.TowerMissionContainer!.OldTowerMissionStateData = null;
             //}
             return obj;
+        }
+
+        /// <summary>
+        /// Strips ASCII control bytes and keeps only the first complete JSON object.
+        /// PS4 and Switch files have a bunch of extra duplicate data at the end
+        /// which makes them invalid json files.
+        /// </summary>
+        /// <remarks>
+        /// Works on raw UTF-8 bytes: only bytes below 0x20 and 0x7F are dropped, so the
+        /// continuation bytes of multi-byte characters are preserved. Braces inside
+        /// string values are not counted.
+        /// </remarks>
+        internal static MemoryStream sanitize(byte[] buffer, int length)
+        {
+            var sanitized = new MemoryStream(length);
+            int bracketCount = 0;
+            bool inString = false;
+            bool escaped = false;
+            for (int i = 0; i < length; i++)
+            {
+                byte b = buffer[i];
+                if (b < 0x20 || b == 0x7F)
+                {
+                    continue;
+                }
+
+                sanitized.WriteByte(b);
+
+                if (inString)
+                {
+                    if (escaped)
+                    {
+                        escaped = false;
+                    }
+                    else if (b == (byte)'\\')
+                    {
+                        escaped = true;
+                    }
+                    else if (b == (byte)'"')
+                    {
+                        inString = false;
+                    }
+                }
+                else if (b == (byte)'"')
+                {
+                    inString = true;
+                }
+                else if (b == (byte)'{')
+                {
+                    bracketCount++;
+                }
+                else if (b == (byte)'}')
+                {
+                    bracketCount--;
+                    if (bracketCount == 0)
+                    {
+                        // This is the end of the first full JSON object
+                        break;
+                    }
+                }
+            }
+
+            sanitized.Seek(0, SeekOrigin.Begin);
+            return sanitized;
         }
 
         public static async ValueTask<Stream> Write(ProfileSaveFile settings)

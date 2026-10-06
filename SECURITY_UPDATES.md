@@ -16,22 +16,41 @@ The following NuGet packages have been updated to address security vulnerabiliti
    - **Fix**: Version 6.0.10 addresses this vulnerability
    - **Reference**: https://github.com/dotnet/announcements/issues/329
 
+> **Do not downgrade System.Text.Json below 6.0.10.** Since the data-integrity fixes described in
+> `ANALISE_ATUALIZACAO.md`, the save file models use `[JsonExtensionData]` to keep fields the editor does
+> not know about. CVE-2024-43485 targets exactly that feature, so the patched version is now required.
+
+2. **SkiaSharp: 2.88.3 → 2.88.9** (also `SkiaSharp.NativeAssets.Win32` and `SkiaSharp.NativeAssets.macOS`)
+   - **Projects Updated**: MCDSaveEdit, PakReader
+   - **Severity**: High
+   - **Advisory**: [GHSA-j7hp-h8jx-5ppr](https://github.com/advisories/GHSA-j7hp-h8jx-5ppr) (libwebp heap buffer overflow, CVE-2023-4863), fixed in 2.88.6
+   - **Note**: The vulnerable code is in the native `libSkiaSharp.dll`, which Costura embeds from
+     `MCDSaveEdit/Costura32` and `MCDSaveEdit/Costura64`. Those files were replaced with the ones from the
+     signed `SkiaSharp.NativeAssets.Win32` 2.88.9 package (`runtimes/win-x86` and `runtimes/win-x64`), so updating
+     the package reference alone would not have been enough. Keep both in sync on future updates.
+
 ### Important Updates
 
-2. **NLog: 5.0.4 → 5.3.4**
+3. **NLog: 5.0.4 → 5.3.4**
    - **Projects Updated**: MCDSaveEdit
    - **Reason**: Version 5.0.4 had no known vulnerabilities, but updating to 5.3.4 provides bug fixes and improvements
    - **Note**: Latest version is 6.0.7, but 5.3.4 is chosen for stability and minimal breaking changes
    - **Status**: No security vulnerabilities
 
-3. **System.Diagnostics.DiagnosticSource: 6.0.0 → 6.0.1**
+4. **System.Diagnostics.DiagnosticSource: 6.0.0 → 6.0.1**
    - **Projects Updated**: MCDSaveEdit
    - **Reason**: Minor version update for bug fixes and improvements
    - **Status**: No security vulnerabilities
 
 ### Known Issues Not Fixed
 
-4. **System.Net.Http 4.3.4**
+5. **DotNetZip 1.16.0** (PakReader)
+   - **Advisory**: [GHSA-xhg6-9j5j-w4vf](https://github.com/advisories/GHSA-xhg6-9j5j-w4vf) (directory traversal when extracting zip archives, CVE-2024-48510)
+   - **Why Not Updated**: DotNetZip is deprecated and no patched version exists
+   - **Exposure**: the advisory concerns extracting zip archives to disk; this application only reads the game's own `.pak` files
+   - **Recommendation**: replace it in the PakReader submodule with `System.IO.Compression` (zlib/deflate streams are available in the framework)
+
+6. **System.Net.Http 4.3.4**
    - **Status**: End-of-Life (EOL)
    - **Issue**: Microsoft no longer provides security patches for this version
    - **Why Not Updated**: This is a dependency of the .NET Framework 4.8 target. A full migration to .NET 6+ would be required to properly address this
@@ -40,7 +59,7 @@ The following NuGet packages have been updated to address security vulnerabiliti
 
 ### Already Secure
 
-5. **Newtonsoft.Json 13.0.1**
+7. **Newtonsoft.Json 13.0.1**
    - **Status**: ✅ Already at secure version
    - **CVE**: CVE-2024-21907 (affects versions < 13.0.1)
    - **Note**: Version 13.0.1 includes the fix with default MaxDepth=128 to prevent DoS attacks

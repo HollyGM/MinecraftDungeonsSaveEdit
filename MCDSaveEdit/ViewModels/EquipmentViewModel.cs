@@ -61,8 +61,9 @@ namespace MCDSaveEdit.ViewModels
         public void saveEnchantment(Enchantment enchantment)
         {
             if (enchantment == null || profile.value == null || selectedItem.value == null || selectedEnchantment.value == null) { return; }
-            var enchantments = selectedItem.value!.Enchantments.ToList();
-            var index = enchantments.IndexOf(selectedEnchantment.value!);
+            var enchantments = selectedItem.value!.Enchantments?.ToList();
+            var index = enchantments?.IndexOf(selectedEnchantment.value!) ?? -1;
+            if (enchantments == null || index < 0) { return; }
 
             enchantments.RemoveAt(index);
             enchantments.Insert(index, enchantment);
@@ -76,9 +77,12 @@ namespace MCDSaveEdit.ViewModels
             if (profile.value == null || selectedItem.value == null) { return; }
             var enchantments = selectedItem.value!.Enchantments?.ToList() ?? new List<Enchantment>();
             if (enchantments.Count >= Constants.MAXIMUM_ENCHANTMENT_OPTIONS_PER_ITEM) { return; }
-            enchantments.Add(new Enchantment() { Id = Constants.DEFAULT_ENCHANTMENT_ID, Level = 0 });
-            enchantments.Add(new Enchantment() { Id = Constants.DEFAULT_ENCHANTMENT_ID, Level = 0 });
-            enchantments.Add(new Enchantment() { Id = Constants.DEFAULT_ENCHANTMENT_ID, Level = 0 });
+            //Enchantments come in sets of 3, so fill up an incomplete set or add a new one
+            do
+            {
+                enchantments.Add(new Enchantment() { Id = Constants.DEFAULT_ENCHANTMENT_ID, Level = 0 });
+            }
+            while (enchantments.Count % 3 != 0);
             selectedItem.value!.Enchantments = enchantments.Take(Constants.MAXIMUM_ENCHANTMENT_OPTIONS_PER_ITEM).ToArray();
 
             saveItem(selectedItem.value!);
