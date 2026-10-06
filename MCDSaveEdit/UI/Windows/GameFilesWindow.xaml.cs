@@ -99,7 +99,17 @@ namespace MCDSaveEdit.UI
 
         private bool foundInDirectory(string testPath)
         {
-            foreach (var directory in Directory.EnumerateDirectories(testPath))
+            IEnumerable<string> directories;
+            try
+            {
+                directories = Directory.EnumerateDirectories(testPath).ToList();
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
+            {
+                //Skip folders we are not allowed to look into
+                return false;
+            }
+            foreach (var directory in directories)
             {
                 if (File.Exists(Path.Combine(directory, Constants.FIRST_PAK_FILENAME)))
                 {

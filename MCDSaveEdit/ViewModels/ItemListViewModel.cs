@@ -71,8 +71,9 @@ namespace MCDSaveEdit.ViewModels
 
         protected IEnumerable<Item> getFilteredItems(ItemFilterEnum filter)
         {
-            var items = this.items.Where(x => x.EquipmentSlot == null) ?? new Item[0];
-            return applyFilterToItems(items, filter).OrderBy(x => x.InventoryIndex!.Value);
+            var items = this.items.Where(x => x.EquipmentSlot == null);
+            //Items without an index go last instead of throwing
+            return applyFilterToItems(items, filter).OrderBy(x => x.InventoryIndex ?? long.MaxValue);
         }
 
 
@@ -112,6 +113,8 @@ namespace MCDSaveEdit.ViewModels
         {
             var index = getMaxIndex(collection) + 1;
             item.InventoryIndex = index;
+            //Items in the list are never equipped, e.g. when moving an equipped item to the storage chest
+            item.EquipmentSlot = null;
             return collection.Append(item);
         }
 

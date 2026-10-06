@@ -398,6 +398,7 @@
       <DependentUpon>ItemScreen.xaml</DependentUpon>
     </Compile>
     <Compile Include="Core\RelayCommand.cs" />
+    <Compile Include="Core\SafeFileWriter.cs" />
     <Compile Include="Services\Databases\StringLibrary.cs" />
     <Compile Include="Core\Utilities.cs" />
     <Compile Include="UI\Windows\WindowFactory.cs" />

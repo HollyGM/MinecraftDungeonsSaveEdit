@@ -14,7 +14,7 @@ namespace MCDSaveEdit
             var list = new List<string>();
             var whitespaceChars = Environment.NewLine.ToCharArray().Concat(new char[] { ' ' }).ToArray();
             string? line = reader.ReadLine()?.Trim(whitespaceChars);
-            while (!reader.EndOfStream && line != null)
+            while (line != null)
             {
                 if (!string.IsNullOrEmpty(line))
                 {

@@ -109,11 +109,12 @@ namespace MCDSaveEdit.UI
 
         private void moveItemToStorage(Item item)
         {
+            //Remove first, while the item still has its equipment slot, so the equipped items get refreshed
+            removeItem(item);
+
             model?.storageChestEquipmentModel?.selectEnchantment(null);
             model?.storageChestEquipmentModel?.addItemToList(item);
             model?.storageChestEquipmentModel?.selectItem(item);
-            
-            removeItem(item);
         }
 
         private void emeraldsTextBox_TextChanged(object sender, TextChangedEventArgs e)

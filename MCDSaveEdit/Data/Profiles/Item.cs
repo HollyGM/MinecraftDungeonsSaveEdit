@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using MCDSaveEdit.Save.Models.Enums;
 #nullable enable
@@ -50,6 +51,10 @@ namespace MCDSaveEdit.Save.Models.Profiles
 
         [JsonPropertyName("upgraded")]
         public bool? Upgraded { get; set; }
+
+        /// <summary>Keeps any field not mapped above so it is written back unchanged.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? ExtensionData { get; set; }
     }
 
     public partial class Item : ICloneable
@@ -62,7 +67,7 @@ namespace MCDSaveEdit.Save.Models.Profiles
         public Item Copy()
         {
             var copy = new Item();
-            //NOTE: deliberately skipping EquipmentSlot and InventoryIndex
+            //NOTE: deliberately skipping EquipmentSlot, InventoryIndex and unmapped ExtensionData
             copy.Armorproperties = this.Armorproperties?.deepClone()?.ToArray();
             copy.Enchantments = this.Enchantments?.deepClone()?.ToArray();
             copy.Gifted = this.Gifted;

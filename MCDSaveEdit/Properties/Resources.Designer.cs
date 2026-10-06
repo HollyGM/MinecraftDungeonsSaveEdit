@@ -358,11 +358,33 @@ namespace MCDSaveEdit.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to open the file &quot;{0}&quot;.
+        ///
+        ///{1}.
+        /// </summary>
+        public static string FAILED_TO_OPEN_FILE_ERROR_MESSAGE {
+            get {
+                return ResourceManager.GetString("FAILED_TO_OPEN_FILE_ERROR_MESSAGE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to File was not in an expected format..
         /// </summary>
         public static string FAILED_TO_PARSE_FILE_ERROR_MESSAGE {
             get {
                 return ResourceManager.GetString("FAILED_TO_PARSE_FILE_ERROR_MESSAGE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to save the file &quot;{0}&quot;. The file on disk was not changed.
+        ///
+        ///{1}.
+        /// </summary>
+        public static string FAILED_TO_SAVE_FILE_ERROR_MESSAGE {
+            get {
+                return ResourceManager.GetString("FAILED_TO_SAVE_FILE_ERROR_MESSAGE", resourceCulture);
             }
         }
         

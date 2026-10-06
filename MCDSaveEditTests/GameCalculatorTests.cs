@@ -59,6 +59,57 @@ namespace MCDSaveEditTests.LogicTests
         }
 
         [TestMethod]
+        public void TestXpAndLevelBeyondInt32()
+        {
+            //experienceForLevel used to overflow into negative values from level 2676 upwards
+            var levels = new[] { 2_675, 2_676, 3_000, 10_000, 1_000_000, 100_000_000, 175_000_000 };
+            long previousXp = 0;
+            foreach (var level in levels)
+            {
+                var xp = GameCalculator.experienceForLevel(level);
+                Assert.IsTrue(xp > previousXp, $"experienceForLevel({level}) = {xp}");
+                Assert.AreEqual(level, GameCalculator.levelForExperience(xp), $"level {level}");
+                Assert.AreEqual(level - 1, GameCalculator.levelForExperience(xp - 1), $"level {level} - 1 xp");
+                previousXp = xp;
+            }
+        }
+
+        [TestMethod]
+        public void TestXpAndLevelLimits()
+        {
+            Assert.AreEqual(0, GameCalculator.experienceForLevel(0));
+            Assert.AreEqual(0, GameCalculator.experienceForLevel(-5));
+            Assert.AreEqual(long.MaxValue, GameCalculator.experienceForLevel(int.MaxValue));
+            Assert.AreEqual(1, GameCalculator.levelForExperience(-1));
+            Assert.AreEqual(1, GameCalculator.levelForExperience(long.MinValue));
+
+            var maxLevel = GameCalculator.levelForExperience(long.MaxValue);
+            Assert.IsTrue(maxLevel > 175_000_000);
+            Assert.IsTrue(GameCalculator.experienceForLevel(maxLevel) <= long.MaxValue);
+            Assert.AreEqual(long.MaxValue, GameCalculator.experienceForLevel(maxLevel + 1));
+        }
+
+        [TestMethod]
+        public void TestPowerLimits()
+        {
+            Assert.AreEqual(0, GameCalculator.levelFromPower(double.NaN));
+            Assert.AreEqual(0, GameCalculator.levelFromPower(-1));
+            Assert.AreEqual(int.MaxValue, GameCalculator.levelFromPower(double.MaxValue));
+            Assert.AreEqual(int.MaxValue, GameCalculator.levelFromPower(GameCalculator.powerFromLevel(int.MaxValue)));
+        }
+
+        [TestMethod]
+        public void TestEnchantmentCostLimits()
+        {
+            Assert.AreEqual(0, GameCalculator.enchantmentCostForLevel(-1));
+            Assert.AreEqual(0, GameCalculator.powerfulEnchantmentCostForLevel(-1));
+            //level * (level + 1) used to overflow before the division
+            Assert.AreEqual(1_250_025_000, GameCalculator.enchantmentCostForLevel(50_000));
+            Assert.AreEqual(int.MaxValue, GameCalculator.enchantmentCostForLevel(100_000));
+            Assert.AreEqual(int.MaxValue, GameCalculator.powerfulEnchantmentCostForLevel(int.MaxValue));
+        }
+
+        [TestMethod]
         public void TestPowerAndLevel()
         {
             var data = new List<Tuple<double, int>> {

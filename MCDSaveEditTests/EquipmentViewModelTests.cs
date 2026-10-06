@@ -86,6 +86,92 @@ namespace MCDSaveEditTests.ViewModelTests
             Assert.AreEqual(0, instance.characterPower.value);
         }
 
+        [TestMethod]
+        public void TestMoveEquippedItemToStorageChest()
+        {
+            var property = new Property<ProfileSaveFile?>(new ProfileSaveFile());
+            var inventory = new MainEquipmentViewModel(property);
+            var chest = new StorageChestEquipmentViewModel(property);
+            var melee = Constants.createDefaultItemForEquipmentSlot(EquipmentSlotEnum.MeleeGear);
+            inventory.addEquippedItem(melee);
+
+            inventory.removeItem(melee);
+            chest.addItemToList(melee);
+
+            Assert.IsNull(melee.EquipmentSlot);
+            Assert.AreEqual(0, melee.InventoryIndex);
+            Assert.AreEqual(0, inventory.equippedItemList.value.Count());
+            Assert.AreEqual(1, chest.filteredItemList.value.Count());
+        }
+
+        [TestMethod]
+        public void TestItemsWithoutInventoryIndexAreListed()
+        {
+            var profile = new ProfileSaveFile() {
+                Items = new[] {
+                    new Item() { Type = "Sword", InventoryIndex = 1 },
+                    new Item() { Type = "Bow" },
+                },
+            };
+            var instance = new MainEquipmentViewModel(new Property<ProfileSaveFile?>(profile));
+            var items = instance.filteredItemList.value.ToArray();
+            Assert.AreEqual(2, items.Length);
+            Assert.AreEqual("Bow", items[1].Type);
+        }
+
+        [TestMethod]
+        public void TestAddEnchantmentSlotCompletesIncompleteSet()
+        {
+            var item = new Item() {
+                Type = "Sword",
+                InventoryIndex = 0,
+                Enchantments = Enumerable.Range(0, 4).Select(_ => new Enchantment() { Id = Constants.DEFAULT_ENCHANTMENT_ID }).ToArray(),
+            };
+            var profile = new ProfileSaveFile() { Items = new[] { item } };
+            var instance = new MainEquipmentViewModel(new Property<ProfileSaveFile?>(profile));
+            instance.selectItem(item);
+
+            instance.addEnchantmentSlot(instance);
+            Assert.AreEqual(6, item.Enchantments!.Length);
+
+            instance.addEnchantmentSlot(instance);
+            Assert.AreEqual(9, item.Enchantments!.Length);
+
+            instance.addEnchantmentSlot(instance);
+            Assert.AreEqual(Constants.MAXIMUM_ENCHANTMENT_OPTIONS_PER_ITEM, item.Enchantments!.Length);
+        }
+
+        [TestMethod]
+        public void TestSaveEnchantmentThatIsNotInTheList()
+        {
+            var enchantment = new Enchantment() { Id = "Sharpness", Level = 1 };
+            var netheriteEnchantment = new Enchantment() { Id = "Smiting", Level = 1 };
+            var item = new Item() {
+                Type = "Sword",
+                InventoryIndex = 0,
+                Enchantments = new[] { enchantment },
+                NetheriteEnchant = netheriteEnchantment,
+            };
+            var profile = new ProfileSaveFile() { Items = new[] { item } };
+            var instance = new MainEquipmentViewModel(new Property<ProfileSaveFile?>(profile));
+            instance.selectItem(item);
+            instance.selectEnchantment(netheriteEnchantment);
+
+            instance.saveEnchantment(netheriteEnchantment);
+
+            CollectionAssert.AreEqual(new[] { enchantment }, item.Enchantments);
+        }
+
+        [TestMethod]
+        public void TestHighLevelSetsPositiveExperience()
+        {
+            var profile = new ProfileSaveFile();
+            var instance = new MainEquipmentViewModel(new Property<ProfileSaveFile?>(profile));
+            instance.level.setValue = 3_000;
+            Assert.IsTrue(profile.Xp > 0);
+            Assert.AreEqual(3_000, instance.level.value);
+        }
+
     }
 
     [TestClass]
@@ -130,5 +216,21 @@ namespace MCDSaveEditTests.ViewModelTests
         }
 
 
+    }
+
+    [TestClass]
+    public class ProfileViewModelTests
+    {
+        [TestMethod]
+        public void TestCurrencyWithoutCurrencyArray()
+        {
+            var instance = new ProfileViewModel();
+            instance.profile.setValue = new ProfileSaveFile();
+            Assert.IsNull(instance.emeralds.value);
+
+            instance.emeralds.setValue = 5;
+            Assert.AreEqual(5UL, instance.emeralds.value);
+            Assert.AreEqual(1, instance.profile.value!.Currency.Length);
+        }
     }
 }

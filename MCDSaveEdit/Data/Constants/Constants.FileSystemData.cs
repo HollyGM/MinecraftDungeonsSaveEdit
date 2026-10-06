@@ -73,5 +73,6 @@ namespace MCDSaveEdit.Data
 
         public const string ENCRYPTED_FILE_EXTENSION = ".dat";
         public const string DECRYPTED_FILE_EXTENSION = ".json";
+        public const string BACKUP_FILE_EXTENSION = ".bak";
     }
 }

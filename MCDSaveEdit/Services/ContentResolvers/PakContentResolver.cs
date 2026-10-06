@@ -82,12 +82,8 @@ namespace MCDSaveEdit.Services
 
         public Task loadPakFilesAsync(bool preloadBitmaps = false)
         {
-            var tcs = new TaskCompletionSource<object?>();
-            Task.Run(() => {
-                this.loadPakFiles(preloadBitmaps);
-                tcs.SetResult(null);
-            });
-            return tcs.Task;
+            //Task.Run propagates exceptions to the awaiting caller instead of never completing
+            return Task.Run(() => this.loadPakFiles(preloadBitmaps));
         }
 
         public void loadPakFiles(bool preloadBitmaps = false)
@@ -106,7 +102,7 @@ namespace MCDSaveEdit.Services
                     string lang = Path.GetDirectoryName(fullPath).Split(Path.DirectorySeparatorChar).Last();
                     if (lang != "Game") //Exception for specific invalid language file
                     {
-                        _localizations.Add(lang, fullPath);
+                        _localizations[lang] = fullPath;
                         //Debug.WriteLine($"LocRes {lang} - {fullPath}");
                     }
                     continue;
@@ -159,7 +155,7 @@ namespace MCDSaveEdit.Services
                         if (_mismatches.ContainsKey(enchantmentName))
                         {
                             var correctedEnchantmentName = _mismatches[enchantmentName];
-                            _enchantments.Add(correctedEnchantmentName, fullPath);
+                            _enchantments[correctedEnchantmentName] = fullPath;
                             EnchantmentDatabase.allEnchantments.Add(correctedEnchantmentName);
                         }
                         else
@@ -191,7 +187,7 @@ namespace MCDSaveEdit.Services
                         if (_mismatches.ContainsKey(itemName))
                         {
                             correctedItemName = _mismatches[itemName];
-                            _equipment.Add(correctedItemName, fullPath);
+                            _equipment[correctedItemName] = fullPath;
                         }
 
                         if (fullPath.Contains("MeleeWeapons"))
@@ -215,7 +211,7 @@ namespace MCDSaveEdit.Services
                         if (_mismatches.ContainsKey(itemName))
                         {
                             correctedItemName = _mismatches[itemName];
-                            _equipment.Add(correctedItemName, fullPath);
+                            _equipment[correctedItemName] = fullPath;
                         }
 
                         ItemDatabase.artifacts.Add(correctedItemName ?? itemName);
@@ -246,25 +242,32 @@ namespace MCDSaveEdit.Services
                 return null;
             }
 
-            var defaultStringLibrary = _pakIndex.extractLocResFile(_localizations[Constants.DEFAULT_LANG_SPECIFIER]);
-            if(langSpecifier == Constants.DEFAULT_LANG_SPECIFIER)
+            var stringLibrary = _pakIndex.extractLocResFile(fullPath);
+            if (stringLibrary == null || langSpecifier == Constants.DEFAULT_LANG_SPECIFIER)
             {
-                return defaultStringLibrary;
+                return stringLibrary;
             }
 
-            var stringLibrary = _pakIndex.extractLocResFile(fullPath);
-            if (stringLibrary != null)
-            {
-                long totalStringCount = stringLibrary.Sum(pair => pair.Value.LongCount());
-                Console.WriteLine($"Loaded {totalStringCount} strings from {langSpecifier} LocRes");
+            long totalStringCount = stringLibrary.Sum(pair => pair.Value.LongCount());
+            Console.WriteLine($"Loaded {totalStringCount} strings from {langSpecifier} LocRes");
 
-                //Fill in any missing strings using the defaultStringLibrary
-                // i.e. fr-FR is missing "Glaive", "Claymore", and "Katana"
-                foreach(var pair in stringLibrary.ToArray())
+            if (!_localizations.TryGetValue(Constants.DEFAULT_LANG_SPECIFIER, out string defaultFullPath))
+            {
+                return stringLibrary;
+            }
+            var defaultStringLibrary = _pakIndex.extractLocResFile(defaultFullPath);
+            if (defaultStringLibrary == null)
+            {
+                return stringLibrary;
+            }
+
+            //Fill in any missing strings using the defaultStringLibrary
+            // i.e. fr-FR is missing "Glaive", "Claymore", and "Katana"
+            foreach(var pair in stringLibrary.ToArray())
+            {
+                if (defaultStringLibrary.TryGetValue(pair.Key, out var defaultValue))
                 {
-                    var defaultValue = defaultStringLibrary![pair.Key];
-                    var newValue = pair.Value.concatMissingFrom(defaultValue);
-                    stringLibrary[pair.Key] = newValue;
+                    stringLibrary[pair.Key] = pair.Value.concatMissingFrom(defaultValue);
                 }
             }
             return stringLibrary;

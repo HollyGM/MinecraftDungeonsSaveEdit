@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 #nullable enable
 
 namespace MCDSaveEdit.UI
@@ -76,16 +77,25 @@ namespace MCDSaveEdit.UI
             }
             else
             {
-                enchantment1Image.Source = ImageResolver.instance.imageSourceForEnchantment(_enchantments[0]);
-                enchantment1Button.CommandParameter = _enchantments[0];
-                enchantment2Image.Source = ImageResolver.instance.imageSourceForEnchantment(_enchantments[1]);
-                enchantment2Button.CommandParameter = _enchantments[1];
-                enchantment3Image.Source = ImageResolver.instance.imageSourceForEnchantment(_enchantments[2]);
-                enchantment3Button.CommandParameter = _enchantments[2];
+                //A set can hold fewer than 3 enchantments, e.g. in edited save files
+                var enchantment1 = _enchantments.ElementAtOrDefault(0);
+                var enchantment2 = _enchantments.ElementAtOrDefault(1);
+                var enchantment3 = _enchantments.ElementAtOrDefault(2);
+                enchantment1Image.Source = imageSourceOrEmptySlot(enchantment1);
+                enchantment1Button.CommandParameter = enchantment1;
+                enchantment2Image.Source = imageSourceOrEmptySlot(enchantment2);
+                enchantment2Button.CommandParameter = enchantment2;
+                enchantment3Image.Source = imageSourceOrEmptySlot(enchantment3);
+                enchantment3Button.CommandParameter = enchantment3;
                 upgradedEnchantmentButton.Visibility = Visibility.Collapsed;
                 upgradedEnchantmentImage.Source = null;
                 upgradedEnchantmentButton.CommandParameter = null;
             }
+        }
+
+        private static ImageSource? imageSourceOrEmptySlot(Enchantment? enchantment)
+        {
+            return ImageResolver.instance.imageSourceForEnchantment(enchantment?.Id ?? Constants.DEFAULT_ENCHANTMENT_ID);
         }
 
         private ICommand? _command;

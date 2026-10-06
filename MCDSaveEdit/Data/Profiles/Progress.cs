@@ -1,4 +1,6 @@
 ﻿using MCDSaveEdit.Save.Models.Enums;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace MCDSaveEdit.Save.Models.Profiles
@@ -13,5 +15,9 @@ namespace MCDSaveEdit.Save.Models.Profiles
 
         [JsonPropertyName("completedThreatLevel")]
         public string CompletedThreatLevel { get; set; }
+
+        /// <summary>Keeps any field not mapped above so it is written back unchanged.</summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? ExtensionData { get; set; }
     }
 }

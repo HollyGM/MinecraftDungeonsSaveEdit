@@ -29,45 +29,56 @@ namespace MCDSaveEdit.Services
         {
             if (stringLibrary.TryGetValue("ItemType", out var itemDict))
             {
-                _itemType = itemDict.ToDictionary(pair => pair.Key.Trim(), pair => pair.Value);
+                _itemType = toTrimmedKeyDictionary(itemDict);
             }
             if (stringLibrary.TryGetValue("Enchantment", out var enchantmentDict))
             {
-                _enchantment = enchantmentDict.ToDictionary(pair => pair.Key.Trim(), pair => pair.Value);
+                _enchantment = toTrimmedKeyDictionary(enchantmentDict);
             }
             if (stringLibrary.TryGetValue("ArmorProperties", out var armorPropertyDict))
             {
-                _armorProperties = armorPropertyDict.ToDictionary(pair => pair.Key.Trim(), pair => pair.Value);
+                _armorProperties = toTrimmedKeyDictionary(armorPropertyDict);
             }
             if (stringLibrary.TryGetValue("Mission", out var missionDict))
             {
-                _mission = missionDict.ToDictionary(pair => pair.Key.Trim(), pair => pair.Value);
+                _mission = toTrimmedKeyDictionary(missionDict);
             }
-            if (stringLibrary.TryGetValue("", out var clickysDict)
-                && stringLibrary.TryGetValue("Realms", out var realmsDict)
-                && stringLibrary.TryGetValue("DLC", out var dlcDict)
-                && stringLibrary.TryGetValue("AncientLabels", out var ancientLabelsDict)
-                && stringLibrary.TryGetValue("MerchantLabels", out var merchantLabelsDict)
-                && stringLibrary.TryGetValue("MissionInterest", out var missionInterestDict)
-                && stringLibrary.TryGetValue("Difficulty", out var diffDict)
-                && stringLibrary.TryGetValue("Content_Season1/Decor/Text/TowerUILabels.csv", out var towerDict)
-                && stringLibrary.TryGetValue("Content_Season2/Decor/Text/Season2MerchantLabels.csv", out var s2MerchantLabelsDict)
-                && stringLibrary.TryGetValue("ItemPowerEffect", out var itemEffectDict)
-                )
-            {
-                _clickys = clickysDict
-                    .Concat(realmsDict)
-                    .Concat(dlcDict)
-                    .Concat(ancientLabelsDict)
-                    .Concat(merchantLabelsDict)
-                    .Concat(missionInterestDict)
-                    .Concat(diffDict)
-                    .Concat(towerDict)
-                    .Concat(s2MerchantLabelsDict)
-                    .Concat(itemEffectDict)
-                    .ToDictionary(pair => pair.Key.Trim(), pair => pair.Value);
-            }
+            //Namespaces missing from a game version are skipped instead of discarding all the others
+            _clickys = toTrimmedKeyDictionary(_clickysNamespaces
+                .Where(stringLibrary.ContainsKey)
+                .SelectMany(ns => stringLibrary[ns]));
             isStringsLoaded = true;
+        }
+
+        private static readonly string[] _clickysNamespaces = new[] {
+            "",
+            "Realms",
+            "DLC",
+            "AncientLabels",
+            "MerchantLabels",
+            "MissionInterest",
+            "Difficulty",
+            "Content_Season1/Decor/Text/TowerUILabels.csv",
+            "Content_Season2/Decor/Text/Season2MerchantLabels.csv",
+            "ItemPowerEffect",
+        };
+
+        /// <summary>
+        /// Keys that collide after trimming, or that exist in several namespaces, keep their first value
+        /// instead of throwing and aborting the whole language load.
+        /// </summary>
+        private static Dictionary<string, string> toTrimmedKeyDictionary(IEnumerable<KeyValuePair<string, string>> pairs)
+        {
+            var result = new Dictionary<string, string>();
+            foreach (var pair in pairs)
+            {
+                var key = pair.Key.Trim();
+                if (!result.ContainsKey(key))
+                {
+                    result.Add(key, pair.Value);
+                }
+            }
+            return result;
         }
 
         public static void unloadExternalStrings()
@@ -82,6 +93,8 @@ namespace MCDSaveEdit.Services
 
         internal static string formatFILE_IN_UNEXPECTED_FORMAT_ERROR_MESSAGE(string filename) { return string.Format(FILE_IN_UNEXPECTED_FORMAT_ERROR_MESSAGE, filename); }
         internal static string formatFILE_DECRYPT_ERROR_MESSAGE(string filename) { return string.Format(FILE_DECRYPT_ERROR_MESSAGE, filename); }
+        internal static string formatFAILED_TO_OPEN_FILE_ERROR_MESSAGE(string filename, string details) { return string.Format(FAILED_TO_OPEN_FILE_ERROR_MESSAGE, filename, details); }
+        internal static string formatFAILED_TO_SAVE_FILE_ERROR_MESSAGE(string filename, string details) { return string.Format(FAILED_TO_SAVE_FILE_ERROR_MESSAGE, filename, details); }
         internal static string formatITEMS_COUNT_LABEL(int items, int max) { return string.Format(ITEMS_COUNT_LABEL, items, max); }
         internal static string formatVERSION(string versionLabel, string versionString) { return string.Format(VERSION_FORMAT, versionLabel, versionString); }
         internal static string formatMCD_VERSION(string versionString) { return string.Format(MCD_VERSION_FORMAT, versionString); }

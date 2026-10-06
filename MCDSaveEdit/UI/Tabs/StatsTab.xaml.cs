@@ -3,6 +3,7 @@ using MCDSaveEdit.Logic;
 using MCDSaveEdit.Services;
 using MCDSaveEdit.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -47,9 +48,10 @@ namespace MCDSaveEdit.UI
             statsStack.Children.Clear();
             if (_model?.profile.value?.ProgressStatCounters == null) { return; }
 
-            foreach (var pair in _model!.profile.value!.ProgressStatCounters)
+            var counters = _model!.profile.value!.ProgressStatCounters;
+            foreach (var pair in counters)
             {
-                var field = createStatField(pair.Key, pair.Value);
+                var field = createStatField(counters, pair.Key, pair.Value);
                 statsStack.Children.Add(field);
             }
         }
@@ -59,14 +61,15 @@ namespace MCDSaveEdit.UI
             mobKillsStack.Children.Clear();
             if (_model?.profile.value?.MobKills == null) { return; }
 
-            foreach (var pair in _model!.profile.value!.MobKills)
+            var mobKills = _model!.profile.value!.MobKills;
+            foreach (var pair in mobKills)
             {
-                var field = createStatField(pair.Key, pair.Value);
+                var field = createStatField(mobKills, pair.Key, pair.Value);
                 mobKillsStack.Children.Add(field);
             }
         }
 
-        private Panel createStatField(string fieldName, long fieldValue)
+        private Panel createStatField(Dictionary<string, long> dictionary, string fieldName, long fieldValue)
         {
             var label = new TextBlock() {
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -86,7 +89,8 @@ namespace MCDSaveEdit.UI
                 Width = 70,
                 FontSize = 16,
                 Text = fieldValue.ToString(),
-                Tag = fieldName,
+                //Remember which dictionary the field belongs to, the same key can exist in both
+                Tag = new KeyValuePair<Dictionary<string, long>, string>(dictionary, fieldName),
             };
             textbox.TextChanged += statTextbox_TextChanged;
 
@@ -122,7 +126,7 @@ namespace MCDSaveEdit.UI
             if (textBox == null) { return; }
             if (long.TryParse(textBox.Text, out long currentValue))
             {
-                textBox.Text = Math.Min(currentValue + 1, long.MaxValue).ToString();
+                textBox.Text = (currentValue == long.MaxValue ? currentValue : currentValue + 1).ToString();
             }
         }
 
@@ -144,21 +148,13 @@ namespace MCDSaveEdit.UI
             if (_model?.profile.value == null) { return; }
             var statTextBox = sender as TextBox;
             if (statTextBox == null) { return; }
-            var fieldName = statTextBox.Tag as string;
-            if (fieldName == null) { return; }
+            if (!(statTextBox.Tag is KeyValuePair<Dictionary<string, long>, string> field)) { return; }
 
             if (long.TryParse(statTextBox.Text, out long newValue))
             {
                 EventLogger.logEvent("statTextbox_TextChanged");
                 statTextBox.BorderBrush = Brushes.Gray;
-                if (_model!.profile.value.ProgressStatCounters.ContainsKey(fieldName))
-                {
-                    _model!.profile.value.ProgressStatCounters[fieldName] = newValue;
-                }
-                else
-                {
-                    _model!.profile.value.MobKills[fieldName] = newValue;
-                }
+                field.Key[field.Value] = newValue;
             }
             else
             {

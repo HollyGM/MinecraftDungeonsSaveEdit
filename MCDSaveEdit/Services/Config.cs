@@ -52,15 +52,17 @@ namespace MCDSaveEdit.Services
 
         public string versionLabel()
         {
-            if (!string.IsNullOrWhiteSpace(stableReleaseVersionString) && Constants.CURRENT_VERSION.Equals(new Version(stableReleaseVersionString!)))
+            var stableVersion = parseVersion(stableReleaseVersionString);
+            var betaVersion = parseVersion(betaReleaseVersionString);
+            if (stableVersion != null && Constants.CURRENT_VERSION.Equals(stableVersion))
             {
                 return R.STABLE_VERSION_LABEL;
             }
-            if (!string.IsNullOrWhiteSpace(betaReleaseVersionString) && Constants.CURRENT_VERSION.Equals(new Version(betaReleaseVersionString!)))
+            if (betaVersion != null && Constants.CURRENT_VERSION.Equals(betaVersion))
             {
                 return R.BETA_VERSION_LABEL;
             }
-            if(!string.IsNullOrWhiteSpace(betaReleaseVersionString) && Constants.CURRENT_VERSION > (new Version(betaReleaseVersionString!)))
+            if (betaVersion != null && Constants.CURRENT_VERSION > betaVersion)
             {
                 return R.UNRELEASED_VERSION_LABEL;
             }
@@ -69,22 +71,28 @@ namespace MCDSaveEdit.Services
 
         public bool isNewBetaVersionAvailable()
         {
-            if (string.IsNullOrWhiteSpace(betaReleaseVersionString))
-            {
-                return false;
-            }
-            var betaVersion = new Version(betaReleaseVersionString!);
-            return Constants.CURRENT_VERSION < betaVersion;
+            var betaVersion = parseVersion(betaReleaseVersionString);
+            return betaVersion != null && Constants.CURRENT_VERSION < betaVersion;
         }
 
         public bool isNewStableVersionAvailable()
         {
-            if(string.IsNullOrWhiteSpace(stableReleaseVersionString))
+            var stableVersion = parseVersion(stableReleaseVersionString);
+            return stableVersion != null && Constants.CURRENT_VERSION < stableVersion;
+        }
+
+        /// <summary>
+        /// Accepts release tags like "1.5.8.0" or "v1.5.8.0" and returns null for anything else
+        /// instead of throwing, e.g. when the remote value is malformed.
+        /// </summary>
+        public static Version? parseVersion(string? versionString)
+        {
+            if (string.IsNullOrWhiteSpace(versionString))
             {
-                return false;
+                return null;
             }
-            var stableVersion = new Version(stableReleaseVersionString!);
-            return Constants.CURRENT_VERSION < stableVersion;
+            var trimmed = versionString!.Trim().TrimStart('v', 'V');
+            return Version.TryParse(trimmed, out var version) ? version : null;
         }
 
     }

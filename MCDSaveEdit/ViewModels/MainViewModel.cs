@@ -117,23 +117,38 @@ namespace MCDSaveEdit.ViewModels
             profileModel.profile.setValue = profile;
         }
 
-        private Task<ProfileSaveFile?> handleGenericFileOpenAsync(string filePath)
+        private static bool isDecryptedFile(string filePath)
+        {
+            return string.Equals(Path.GetExtension(filePath), Constants.DECRYPTED_FILE_EXTENSION, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<ProfileSaveFile?> handleGenericFileOpenAsync(string filePath)
         {
             Console.WriteLine("Reading file: {0}", filePath);
-            if (Path.GetExtension(filePath) == Constants.DECRYPTED_FILE_EXTENSION)
+            try
             {
-                return handleJsonFileOpen(filePath);
+                if (isDecryptedFile(filePath))
+                {
+                    return await handleJsonFileOpen(filePath);
+                }
+                else
+                {
+                    return await handleDatFileOpen(filePath);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return handleDatFileOpen(filePath);
+                //e.g. the file is locked by the game, access is denied or decryption failed
+                EventLogger.logError(e.ToString());
+                showError?.Invoke(R.formatFAILED_TO_OPEN_FILE_ERROR_MESSAGE(Path.GetFileName(filePath), e.Message));
+                return null;
             }
         }
 
-        private Task<ProfileSaveFile?> handleJsonFileOpen(string filePath)
+        private async Task<ProfileSaveFile?> handleJsonFileOpen(string filePath)
         {
-            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            return tryParseFileStreamAsync(stream);
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return await tryParseFileStreamAsync(stream);
         }
 
         private async Task<ProfileSaveFile?> handleDatFileOpen(string filePath)
@@ -182,52 +197,45 @@ namespace MCDSaveEdit.ViewModels
 
         #region Save File
 
-        public async Task handleFileSaveAsync(string? filePath, ProfileSaveFile profile)
+        /// <returns>true if the file was written</returns>
+        public async Task<bool> handleFileSaveAsync(string? filePath, ProfileSaveFile profile)
         {
-            if (filePath == null) { return; }
+            if (filePath == null) { return false; }
             profile.TotalGearPower = profile.computeCharacterPower();
             Console.WriteLine("Writing file: {0}", filePath!);
-            if (Path.GetExtension(filePath!) == Constants.DECRYPTED_FILE_EXTENSION)
+            try
             {
-                await handleJsonFileSave(filePath!, profile);
+                using Stream? stream = isDecryptedFile(filePath!) ? await ProfileParser.Write(profile) : await encryptProfile(profile);
+                if (stream == null)
+                {
+                    return false;
+                }
+                // Written to a temporary file first so a failure never leaves a half-written save behind
+                await SafeFileWriter.writeAsync(stream, filePath!, filePath + Constants.BACKUP_FILE_EXTENSION);
             }
-            else
+            catch (Exception e)
             {
-                await handleDatFileSave(filePath!, profile);
+                //e.g. the file is locked by the game or access is denied
+                EventLogger.logError(e.ToString());
+                showError?.Invoke(R.formatFAILED_TO_SAVE_FILE_ERROR_MESSAGE(Path.GetFileName(filePath), e.Message));
+                return false;
             }
-            addRecentFile(filePath);
+            addRecentFile(filePath!);
             profileModel.filePath = filePath;
+            return true;
         }
 
-        private async Task handleJsonFileSave(string filePath, ProfileSaveFile profile)
-        {
-            using var stream = await ProfileParser.Write(profile);
-            await writeStreamToFileAsync(stream, filePath);
-        }
-
-        private async Task handleDatFileSave(string filePath, ProfileSaveFile profile)
+        private async Task<Stream?> encryptProfile(ProfileSaveFile profile)
         {
             using var inputStream = await ProfileParser.Write(profile);
             inputStream.Seek(0, SeekOrigin.Begin);
-            using Stream? processed = await FileProcessHelper.Encrypt(inputStream);
+            Stream? processed = await FileProcessHelper.Encrypt(inputStream);
             if (processed == null)
             {
                 EventLogger.logError($"Failed to encrypt the json data.");
                 showError?.Invoke(R.FAILED_TO_ENCRYPT_ERROR_MESSAGE);
-                return;
             }
-            await writeStreamToFileAsync(processed, filePath);
-        }
-
-        private async Task writeStreamToFileAsync(Stream stream, string filePath)
-        {
-            if (!File.Exists(filePath))
-            {
-                File.WriteAllText(filePath, string.Empty);
-            }
-            using var filestream = new FileStream(filePath, FileMode.Truncate, FileAccess.Write);
-            stream.Seek(0, SeekOrigin.Begin);
-            await stream.CopyToAsync(filestream);
+            return processed;
         }
 
         #endregion
